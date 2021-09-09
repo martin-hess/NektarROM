@@ -600,6 +600,15 @@ namespace Nektar
 			interp_traj_start = 1;
 		}
 
+		if (m_session->DefinesParameter("POD_collect_start")) 
+		{
+			POD_collect_start = m_session->GetParameter("POD_collect_start");	
+		}
+		else
+		{
+			POD_collect_start = 0;
+		}
+
 		if (m_session->DefinesParameter("max_time_samples")) 
 		{
 			max_time_samples = m_session->GetParameter("max_time_samples");	
@@ -1109,7 +1118,7 @@ namespace Nektar
             			// collect the fields from here
 		// if (!(step % 100))
 //                if (cos_angle < 0.99985)
-        if (cos_angle < 0.99)
+        if ((cos_angle < 0.99) && (POD_collect_start <= step))
 		{
 		    cout << "adding at step no. at VCS " << step << " out of a macimum of " << m_steps << " steps " << endl;
 		    cout << "current no_of_added_ones " << no_of_added_ones << endl;

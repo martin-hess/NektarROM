@@ -246,6 +246,7 @@ namespace Nektar
     int ROM_size_x;
     int ROM_size_y;
 	int interp_traj_start;
+	int POD_collect_start;
 	int max_time_samples;
         
     };

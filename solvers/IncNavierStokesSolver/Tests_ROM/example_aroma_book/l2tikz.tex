@@ -1,0 +1,61 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\definecolor{mycolor1}{rgb}{0.00000,0.44700,0.74100}%
+\definecolor{mycolor2}{rgb}{0.85000,0.32500,0.09800}%
+%
+\begin{tikzpicture}
+
+\begin{semilogyaxis}[%
+width=\fwidth,
+height=\fheight,
+at={(0.758in,0.481in)},
+xlabel={ \normalsize ROM basis size },
+ylabel={ \normalsize relative $L^2(\Omega)$ error in velocity },
+scale only axis,
+xmin=0,
+xmax=12,
+ymin=0,
+ymax=2.5,
+axis background/.style={fill=white},
+legend style={legend cell align=left, align=left, draw=white!15!black}
+]
+\addplot [color=mycolor1]
+  table[row sep=crcr]{%
+1	0.612882490963578\\
+2	0.0835613719021233\\
+3	0.0204179619111111\\
+4	0.00542531629649355\\
+5	0.00151957885437807\\
+6	0.000435114369812303\\
+7	0.000125032878050359\\
+8	1.91203731770269e-05\\
+9	1.43343986518636e-06\\
+10	8.03194025841032e-08\\
+11	4.77539026573843e-09\\
+12	4.4933770350502e-09\\
+};
+\addlegendentry{Mean error}
+
+\addplot [color=mycolor2]
+  table[row sep=crcr]{%
+1	2.04866729453377\\
+2	0.194078205126771\\
+3	0.0732976049069296\\
+4	0.0138732199272552\\
+5	0.0033874319988519\\
+6	0.00112897030692966\\
+7	0.00030789780626277\\
+8	5.01288322806436e-05\\
+9	4.31508530956082e-06\\
+10	2.34021255621452e-07\\
+11	1.60949077740838e-08\\
+12	5.45119574809742e-09\\
+};
+\addlegendentry{Maximum error}
+
+\end{semilogyaxis}
+\end{tikzpicture}%

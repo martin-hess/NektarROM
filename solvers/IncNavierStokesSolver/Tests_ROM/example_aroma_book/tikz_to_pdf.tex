@@ -1,0 +1,53 @@
+
+\documentclass{article}
+
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{psfrag}
+\usepackage{multirow}
+\usepackage{subfig}
+\usepackage{pgfplots}
+
+\usepackage{amsmath,txfonts}
+\usepackage[english]{babel}
+
+
+% final usage:
+% pdflatex --jobname=tikz_pdf /scratch/data/my_talks_papers/talks_papers/conference_talks/2014_07_22_scee/tex_proceeding/revision/proceeding_figures/tikz_to_pdf.tex
+
+
+
+\pgfrealjobname{tikz_to_pdf}
+\pgfplotsset{compat=1.18}
+\pgfplotsset{every tick label/.append style={font=\normalsize}}
+
+
+\begin{document}
+
+
+%\beginpgfgraphicnamed{tikz_pdf}
+ %  \input{stab_const_compumag.tex}
+%\endpgfgraphicnamed
+
+%\begin{figure}[ht]
+\beginpgfgraphicnamed{tikz_pdf}
+\tiny
+\centering
+\newlength{\fwidth}
+\newlength{\fheight}
+\setlength{\fwidth}{0.6\linewidth}
+\setlength{\fheight}{0.45\linewidth}
+%\setlength{\fwidth}{1.0\linewidth}
+%\setlength{\fheight}{0.75\linewidth}
+ %\input{resi_double.tex}
+ %\input{HGK4_points.tex}
+\input{l2tikz}
+%\input{cav_bif.tex}
+%\input{err_mr_70_log.tex}
+%\caption{Stability constant plotted over variation of frequency and geometry.}
+\label{fig_coplanar_wg_full_trafo}
+\endpgfgraphicnamed
+%\end{figure}
+
+
+\end{document}

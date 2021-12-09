@@ -41,7 +41,7 @@
             <P> param8 = 0.6       </P>
             <P> param9 = 0.7       </P>
             <P> param10 = 0.8       </P>
-            <P> param11 = 0.03       </P>
+            <P> param11 = 0.075       </P>
             <P> param12 = 0.05       </P>
             <P> type_para1 = 0       </P>    <!-- 0=kin_visc, 1=geo   -->
             <P> POD_tolerance = 1       </P>

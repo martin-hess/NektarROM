@@ -607,6 +607,14 @@ namespace Nektar
 		{
 			overwrite_with_interp_field = 0;
 		}
+		if (m_session->DefinesParameter("overwrite_with_interp_field_and_diff")) 
+		{
+			overwrite_with_interp_field_and_diff = m_session->GetParameter("overwrite_with_interp_field_and_diff");	
+		}
+		else
+		{
+			overwrite_with_interp_field_and_diff = 0;
+		}
 		if (m_session->DefinesParameter("interp_traj_length")) 
 		{
 			interp_traj_length = m_session->GetParameter("interp_traj_length");	
@@ -1027,7 +1035,7 @@ namespace Nektar
 			collect_interp_relative_Linf_error[interp_index] = relative_Linf_error;
 
 			// overwrite the field			
-			if (overwrite_with_interp_field)
+			if (overwrite_with_interp_field && !(overwrite_with_interp_field_and_diff) )
 			{
 				for (int k = 0; k < m_fields[m_intVariables[0]]->GetNpoints(); ++k)
 	    	    {
@@ -1038,6 +1046,25 @@ namespace Nektar
 	            m_fields[1]->FwdTrans_IterPerExp(m_fields[1]->GetPhys(), m_fields[1]->UpdateCoeffs());
 				cout << "overwriting field at step " << step << endl;
 			}
+			if (overwrite_with_interp_field && (overwrite_with_interp_field_and_diff) )
+			{
+				Array< OneD, NekDouble > current_phys_x = m_fields[0]->GetPhys();
+				Array< OneD, NekDouble > current_phys_y = m_fields[1]->GetPhys();
+				for (int k = 0; k < m_fields[m_intVariables[0]]->GetNpoints(); ++k)
+	    	    {
+//					cout << "it is  current_phys_x[k] " << current_phys_x[k] << endl;
+//					cout << "it is  reproj_x(k) " << reproj_x(k) << endl;
+					double nnx = current_phys_x[k] - reproj_x(k);
+//					cout << "it is  nnx " << nnx << endl;
+					m_fields[0]->SetPhys(k, nnx);
+					double nny = current_phys_y[k] - reproj_y(k);
+	       	        m_fields[1]->SetPhys(k, nny);
+	    	    }
+	            m_fields[0]->FwdTrans_IterPerExp(m_fields[0]->GetPhys(), m_fields[0]->UpdateCoeffs());
+	            m_fields[1]->FwdTrans_IterPerExp(m_fields[1]->GetPhys(), m_fields[1]->UpdateCoeffs());
+				cout << "overwriting field and diff at step " << step << endl;
+			}
+
 		}
 
 

@@ -255,6 +255,7 @@ namespace Nektar
 	int interp_traj_length;
 	int interp_traj_mode_number;
 	bool overwrite_with_interp_field;
+	bool overwrite_with_interp_field_and_diff;
 	int POD_collect_start;
 	int max_time_samples;
 	Array<OneD, NekDouble> collect_interp_relative_L2_error;  

@@ -696,6 +696,8 @@ namespace Nektar
 	for (int i = 0; i < curr_index[0]; ++i)
 	{
 		lagrange_value *= (curr_param[0] - param_vector_dir0[i]) / (param_vector_dir0[curr_index[0]] - param_vector_dir0[i]);
+	
+
 //		cout << "(curr_param[0] - param_vector_dir0[i]) / (param_vector_dir0[curr_index[0]] - param_vector_dir0[i]); " << (curr_param[0] - param_vector_dir0[i]) / (param_vector_dir0[curr_index[0]] - param_vector_dir0[i]) << endl;
 //		cout << "param_vector_dir0[curr_index[0]] " << param_vector_dir0[curr_index[0]] << endl;
 //		cout << "curr_index[0] " << curr_index[0]	 << endl;
@@ -706,11 +708,27 @@ namespace Nektar
 		for (int i = 0; i < curr_index[1]; ++i)
 		{
 			lagrange_value *= (curr_param[1] - param_vector_dir1[i]) / (param_vector_dir1[curr_index[1]] - param_vector_dir1[i]);
+
+			if (std::isnan(lagrange_value))
+			{
+//				cout << "curr_param[0] " << curr_param[0] << " curr_param[1] " << curr_param[1] << endl;
+	//			cout << "curr_index[0] " << curr_index[0] << " curr_index[1] " << curr_index[1] << endl; 
+			} 
+
+//		if (std::isnan((curr_param[1] - param_vector_dir1[i]) / (param_vector_dir1[curr_index[1]] - param_vector_dir1[i])))
+//		{
+//			cout << "curr_param[0] " << curr_param[0] << " curr_param[1] " << curr_param[1] << endl;
+//			cout << "curr_index[0] " << curr_index[0] << " curr_index[1] " << curr_index[1] << endl; 
+//		}
+
 //			cout << "(curr_param[1] - param_vector_dir1[i]) / (param_vector_dir1[curr_index[1]] - param_vector_dir1[i]); " << (curr_param[1] - param_vector_dir1[i]) / (param_vector_dir1[curr_index[1]] - param_vector_dir1[i]) << endl;
 		}
 	}
 //	cout << "curr_param[0] " << curr_param[0] << endl;
 //	cout << "curr_param[1] " << curr_param[1] << endl;  
+
+
+
 	return lagrange_value;
     }    
 
@@ -757,6 +775,7 @@ namespace Nektar
 			{
 				int index1 = i;
 				int index2 = curr_sum - i;
+//				cout << "added_indices " << added_indices << endl;
 //				cout << "index1 " << index1 << " index2 " << index2 << endl; 				
 				index_set[added_indices][0] = index1;
 				index_set[added_indices][1] = index2;
@@ -847,8 +866,10 @@ namespace Nektar
 //				interpolant_y[i] += sparse_poly_coefficients_y[index_interpol_op][i];
 			}
 		}
-		cout << " interpolant_x[0] " << interpolant_x[0] << endl;
-		cout << " snapshot_x_collection[0][0] " << snapshot_x_collection[0][0] << endl;
+//		cout << " interpolant_x[0] " << interpolant_x[0] << endl;
+//		cout << " snapshot_x_collection[0][0] " << snapshot_x_collection[0][0] << endl;
+//		cout << "L2norm_ITHACA(snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]) " << L2norm_ITHACA(snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]) << endl;
+//		cout << "L2norm_abs_error_ITHACA(interpolant_x, interpolant_y, snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]) " << L2norm_abs_error_ITHACA(interpolant_x, interpolant_y, snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]) << endl;
 		double rel_L2error = L2norm_abs_error_ITHACA(interpolant_x, interpolant_y, snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]) / L2norm_ITHACA(snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]);
 		cout << "rel_L2error at 2D parameter geo " << current_geo << " nu " << current_nu << " is " << rel_L2error << endl;
 		collect_L2[iter_index] = rel_L2error;

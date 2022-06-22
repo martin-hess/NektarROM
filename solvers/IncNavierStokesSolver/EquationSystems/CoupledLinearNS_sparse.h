@@ -77,6 +77,7 @@ namespace Nektar
         void load_snapshots(void);
     void compute_sparse_poly_approx();
     void compute_sparse_poly_approx_2D();
+	void compute_sparse_poly_approx_2D_adaptive();
 	void compute_sparse_poly_approx_2D_lower_dim(int approx_dim, double &max_rel_L2, double &mean_rel_L2);
     double lagrange_interp(double curr_param, int curr_index, int sparse_poly_approx_dimension);
     double lagrange_interp_tensorised_hierarchical(Array<OneD, double> curr_param, Array<OneD, int> curr_index);
@@ -470,6 +471,7 @@ namespace Nektar
 	double do_trafo_check_relative_error;
 	bool load_cO_snapshot_data_from_files;
 	bool compute_smaller_model_errs;
+	bool adaptive_snapshot_select;
 	int qoi_dof;
 	int fine_grid_dir0;
 	int fine_grid_dir1;

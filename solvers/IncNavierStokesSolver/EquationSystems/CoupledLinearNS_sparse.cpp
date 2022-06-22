@@ -228,8 +228,16 @@ namespace Nektar
 		else
 		{
 			replace_snapshot_with_transformed = 1;
+
 		} 
-	
+		if (m_session->DefinesParameter("adaptive_snapshot_select")) 
+		{
+			adaptive_snapshot_select = m_session->GetParameter("adaptive_snapshot_select");
+		}
+		else
+		{
+			adaptive_snapshot_select = 0;
+		} 	
 	
 	
 		parameter_types = Array<OneD, int> (parameter_space_dimension); 
@@ -291,11 +299,11 @@ namespace Nektar
 			}
 			for(int i0 = 0; i0 < number_of_snapshots_dir0; ++i0)
 			{
-				cout << "param_vector_dir0[i0] " << param_vector_dir0[i0] << endl;
+//				cout << "param_vector_dir0[i0] " << param_vector_dir0[i0] << endl;
 			}
 			for(int i0 = 0; i0 < number_of_snapshots_dir1; ++i0)
 			{
-				cout << "param_vector_dir1[i0] " << param_vector_dir1[i0] << endl;
+	//			cout << "param_vector_dir1[i0] " << param_vector_dir1[i0] << endl;
 			}
 		
 		
@@ -305,11 +313,11 @@ namespace Nektar
 
 			for(int i0 = 0; i0 < number_of_snapshots_dir0; ++i0)
 			{
-				cout << "param_vector_dir0[i0] " << param_vector_dir0[i0] << endl;
+//				cout << "param_vector_dir0[i0] " << param_vector_dir0[i0] << endl;
 			}
 			for(int i0 = 0; i0 < number_of_snapshots_dir1; ++i0)
 			{
-				cout << "param_vector_dir1[i0] " << param_vector_dir1[i0] << endl;
+//				cout << "param_vector_dir1[i0] " << param_vector_dir1[i0] << endl;
 			}
 
 
@@ -408,9 +416,13 @@ namespace Nektar
 		{
         	compute_sparse_poly_approx();
         }
-        if (parameter_space_dimension == 2)
+        if ((parameter_space_dimension == 2) && !(adaptive_snapshot_select))
 		{
         	compute_sparse_poly_approx_2D();
+        }
+        if ((parameter_space_dimension == 2) && (adaptive_snapshot_select))
+		{
+        	compute_sparse_poly_approx_2D_adaptive();
         }
 
 	}
@@ -732,6 +744,124 @@ namespace Nektar
 	return lagrange_value;
     }    
 
+    void CoupledLinearNS_sparse::compute_sparse_poly_approx_2D_adaptive()
+    {
+		// grid points are being chosen iteratively in a greedy fashion
+		Array<OneD,  Array<OneD, int> > index_set(max_sparse_poly_approx_dimension);
+		index_set[0][0] = 0;
+		index_set[0][1] = 0;
+		int current_sparse_poly_approx_dimension = 1;
+
+		// initialise the coefficients
+		Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_x(max_sparse_poly_approx_dimension);
+		Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_y(max_sparse_poly_approx_dimension);
+		for (int i=0; i < max_sparse_poly_approx_dimension; ++i)
+		{
+			sparse_poly_coefficients_x[i] = Array<OneD, NekDouble> (snapshot_x_collection[0].size());
+			sparse_poly_coefficients_y[i] = Array<OneD, NekDouble> (snapshot_x_collection[0].size());
+			for(int k=0; k<snapshot_x_collection[0].size(); ++k)
+			{
+				sparse_poly_coefficients_x[i][k] = 0;
+				sparse_poly_coefficients_y[i][k] = 0;
+			}
+		}
+		// compute the current coefficients
+		for (int i=current_sparse_poly_approx_dimension-1; i < current_sparse_poly_approx_dimension; ++i)
+		{
+			// identify the correct snapshot index based on the index_set
+			int index_all = index_set[i][1] + number_of_snapshots_dir1 * index_set[i][0]; 
+			for(int k=0; k<snapshot_x_collection[0].size(); ++k)
+			{
+				sparse_poly_coefficients_x[i][k] =  snapshot_x_collection[index_all][k];
+				sparse_poly_coefficients_y[i][k] =  snapshot_y_collection[index_all][k];
+			}
+			
+			for (int j=0; j < i; ++j)
+			{
+				double lith = lagrange_interp_tensorised_hierarchical(general_param_vector[index_all], index_set[j]);
+				for(int k=0; k<snapshot_x_collection[0].size(); ++k)
+				{
+					sparse_poly_coefficients_x[i][k] -= sparse_poly_coefficients_x[j][k] * lith;
+					sparse_poly_coefficients_y[i][k] -= sparse_poly_coefficients_y[j][k] * lith;
+				}
+			}
+		}
+	
+		Array<OneD, NekDouble> collect_L2(Nmax);
+		// start sweeping 
+		for (int iter_index = 0; iter_index < Nmax; ++iter_index)
+		{
+			int current_index = iter_index;
+			double current_nu;
+			double current_geo;
+			Array<OneD, NekDouble> current_param(parameter_space_dimension, 0.0);
+			current_param = general_param_vector[current_index];
+			if (parameter_types[0] == 0)
+			{
+				current_nu = current_param[0];
+				current_geo = current_param[1];
+			}
+			if (parameter_types[0] == 1)
+			{
+				current_nu = current_param[1];
+				current_geo = current_param[0];
+			}
+			Array<OneD, NekDouble> interpolant_x(snapshot_x_collection[0].size());
+			Array<OneD, NekDouble> interpolant_y(snapshot_y_collection[0].size());
+			for (int i = 0; i < snapshot_x_collection[0].size(); ++i)
+			{
+				interpolant_x[i] = 0.0;
+				interpolant_y[i] = 0.0;
+			}
+			for (int index_interpol_op = 0; index_interpol_op < current_sparse_poly_approx_dimension; ++index_interpol_op)
+			{
+				double lith = lagrange_interp_tensorised_hierarchical(general_param_vector[current_index], index_set[index_interpol_op]); // ToDo: need also an adaptive general_param_vector!!
+				for (int i = 0; i < snapshot_x_collection[0].size(); ++i)	
+				{
+					interpolant_x[i] += sparse_poly_coefficients_x[index_interpol_op][i] * lith;
+					interpolant_y[i] += sparse_poly_coefficients_y[index_interpol_op][i] * lith;
+				}
+			}
+			double rel_L2error = L2norm_abs_error_ITHACA(interpolant_x, interpolant_y, snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]) / L2norm_ITHACA(snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]);
+			cout << "rel_L2error at 2D parameter geo " << current_geo << " nu " << current_nu << " is " << rel_L2error << endl;
+			collect_L2[iter_index] = rel_L2error;
+		}
+		double mean_rel_L2 = 0;
+		double max_rel_L2 = 0;
+		for (int iter_index = 0; iter_index < Nmax; ++iter_index)
+		{
+			if (collect_L2[iter_index] > max_rel_L2)
+				max_rel_L2 = collect_L2[iter_index];
+			mean_rel_L2 += collect_L2[iter_index] / Nmax;
+		}
+		cout << "mean_rel_L2 " << mean_rel_L2 << " max_rel_L2 " << max_rel_L2 << endl;
+
+		// choose the next point-to-add
+		Array<OneD, int> choice1(2);
+		choice1[0] = index_set[current_sparse_poly_approx_dimension-1][0] + 1;
+		choice1[1] = index_set[current_sparse_poly_approx_dimension-1][1];
+		int index_all_c1 = choice1[1] + number_of_snapshots_dir1 * choice1[0]; 
+		Array<OneD, int> choice2(2);
+		choice2[0] = index_set[current_sparse_poly_approx_dimension-1][0];
+		choice2[1] = index_set[current_sparse_poly_approx_dimension-1][1] + 1;
+		int index_all_c2 = choice2[1] + number_of_snapshots_dir1 * choice2[0]; 
+		cout << "error choice1 " << collect_L2[index_all_c1] << endl;
+		cout << "error choice2 " << collect_L2[index_all_c2] << endl;
+		if (collect_L2[index_all_c1] > collect_L2[index_all_c2])
+		{
+			Array<OneD, int> index_to_add = choice1;
+			int index_all_to_add = index_all_c1;
+		}
+		else
+		{
+			Array<OneD, int> index_to_add = choice2;
+			int index_all_to_add = index_all_c2;
+		}
+
+
+
+
+	}
 
 
     void CoupledLinearNS_sparse::compute_sparse_poly_approx_2D()

@@ -1390,6 +1390,14 @@ namespace Nektar
 	{
 		replace_snapshot_with_transformed = 1;
 	} 
+	if (m_session->DefinesParameter("fixed_point_solver_tolerance")) 
+	{
+		fixed_point_solver_tolerance = m_session->GetParameter("fixed_point_solver_tolerance");
+	}
+	else
+	{
+		fixed_point_solver_tolerance = 1e-10;
+	} 
 	
 	
 	
@@ -1581,7 +1589,7 @@ namespace Nektar
 	bool snapshot_computation_plot_rel_errors = 1;
 	double rel_err = 1.0;
 	ongoing_snapshot_computation = 1;
-	while (rel_err > 1e-10)
+	while (rel_err > fixed_point_solver_tolerance)
 	{
 		Set_m_kinvis( parameter );
 		DoInitialiseAdv(init_snapshot_x, init_snapshot_y); // replaces .DoInitialise();
@@ -3915,12 +3923,12 @@ namespace Nektar
 
     void CoupledLinearNS_ROM::ROM_offline_phase()
     {
+
        	f_bnd_size = curr_f_bnd.size();
-	f_p_size = curr_f_p.size();
-	f_int_size = curr_f_int.size();
+		f_p_size = curr_f_p.size();
+		f_int_size = curr_f_int.size();
 
-	collect_f_all = DoTrafo();
-
+		collect_f_all = DoTrafo();
 
 	Eigen::BDCSVD<Eigen::MatrixXd> svd_collect_f_all(collect_f_all, Eigen::ComputeThinU);
 //	cout << "svd_collect_f_all.singularValues() " << svd_collect_f_all.singularValues() << endl << endl;

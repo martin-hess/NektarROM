@@ -746,16 +746,22 @@ namespace Nektar
 
     void CoupledLinearNS_sparse::compute_sparse_poly_approx_2D_adaptive()
     {
+		Array<OneD, NekDouble> collect_max(max_sparse_poly_approx_dimension);
+		Array<OneD, NekDouble> collect_mean(max_sparse_poly_approx_dimension);
 		// grid points are being chosen iteratively in a greedy fashion
-		Array<OneD,  Array<OneD, int> > index_set(max_sparse_poly_approx_dimension);
+		Array<OneD,  Array<OneD, int> > index_set(max_sparse_poly_approx_dimension+1);
+		for (int i=0; i <= max_sparse_poly_approx_dimension; ++i)
+		{ 
+			index_set[i] = Array<OneD, int>(parameter_space_dimension);
+		}
 		index_set[0][0] = 0;
 		index_set[0][1] = 0;
 		int current_sparse_poly_approx_dimension = 1;
 
 		// initialise the coefficients
-		Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_x(max_sparse_poly_approx_dimension);
-		Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_y(max_sparse_poly_approx_dimension);
-		for (int i=0; i < max_sparse_poly_approx_dimension; ++i)
+		Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_x(max_sparse_poly_approx_dimension+1);
+		Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_y(max_sparse_poly_approx_dimension+1);
+		for (int i=0; i < max_sparse_poly_approx_dimension+1; ++i)
 		{
 			sparse_poly_coefficients_x[i] = Array<OneD, NekDouble> (snapshot_x_collection[0].size());
 			sparse_poly_coefficients_y[i] = Array<OneD, NekDouble> (snapshot_x_collection[0].size());
@@ -835,8 +841,12 @@ namespace Nektar
 			mean_rel_L2 += collect_L2[iter_index] / Nmax;
 		}
 		cout << "mean_rel_L2 " << mean_rel_L2 << " max_rel_L2 " << max_rel_L2 << endl;
+		collect_max[0] = max_rel_L2;
+		collect_mean[0] = mean_rel_L2;
 
 		// choose the next point-to-add
+		Array<OneD, int> index_to_add;
+		int index_all_to_add;
 		Array<OneD, int> choice1(2);
 		choice1[0] = index_set[current_sparse_poly_approx_dimension-1][0] + 1;
 		choice1[1] = index_set[current_sparse_poly_approx_dimension-1][1];
@@ -849,19 +859,238 @@ namespace Nektar
 		cout << "error choice2 " << collect_L2[index_all_c2] << endl;
 		if (collect_L2[index_all_c1] > collect_L2[index_all_c2])
 		{
-			Array<OneD, int> index_to_add = choice1;
-			int index_all_to_add = index_all_c1;
+			index_to_add = choice1;
+			index_all_to_add = index_all_c1;
 		}
 		else
 		{
-			Array<OneD, int> index_to_add = choice2;
-			int index_all_to_add = index_all_c2;
+			index_to_add = choice2;
+			index_all_to_add = index_all_c2;
+		}
+		
+
+		cout << "test0 "  << endl;
+		for (int dimens = 0; dimens < max_sparse_poly_approx_dimension; ++dimens)		
+		{
+			cout << "test1 " <<  endl;
+			index_set[current_sparse_poly_approx_dimension][0] = index_to_add[0];
+			index_set[current_sparse_poly_approx_dimension][1] = index_to_add[1];
+			cout << "index_set[current_sparse_poly_approx_dimension][0] " << index_set[current_sparse_poly_approx_dimension][0] << endl;
+			cout << "index_set[current_sparse_poly_approx_dimension][1] " << index_set[current_sparse_poly_approx_dimension][1] << endl;
+			++current_sparse_poly_approx_dimension;
+			compute_current_coffs_adaptive(current_sparse_poly_approx_dimension,  index_set,  sparse_poly_coefficients_x, sparse_poly_coefficients_y);
+			sweep_adaptive(collect_L2, current_sparse_poly_approx_dimension, index_set,  sparse_poly_coefficients_x, sparse_poly_coefficients_y);
+			mean_rel_L2 = 0;
+			max_rel_L2 = 0;
+			for (int iter_index = 0; iter_index < Nmax; ++iter_index)
+			{
+				if (collect_L2[iter_index] > max_rel_L2)
+					max_rel_L2 = collect_L2[iter_index];
+				mean_rel_L2 += collect_L2[iter_index] / Nmax;
+			}
+			cout << "mean_rel_L2 " << mean_rel_L2 << " max_rel_L2 " << max_rel_L2 << endl;
+			collect_max[current_sparse_poly_approx_dimension-1] = max_rel_L2;
+			collect_mean[current_sparse_poly_approx_dimension-1] = mean_rel_L2;
+			int max_index = find_next_to_add(collect_L2, current_sparse_poly_approx_dimension, index_set);
+			cout << "returned max index " << max_index << endl;
+			index_to_add[0] = (int)max_index / number_of_snapshots_dir1;
+			index_to_add[1] = max_index % number_of_snapshots_dir1;
+		}
+
+	{
+	std::stringstream sstm;
+	sstm << "sparse_conv_mean_adaptive.txt";
+	std::string sparse_conv_mean = sstm.str();
+	const char* outname = sparse_conv_mean.c_str();
+	ofstream myfile (outname);
+	if (myfile.is_open())
+	{
+		for (int i0 = 0; i0 < max_sparse_poly_approx_dimension; i0++)
+		{
+			myfile << std::setprecision(17) << collect_mean[i0] << "\t";
+		}
+		myfile.close();
+	}
+	else cout << "Unable to open file"; 
+	}
+	{
+	std::stringstream sstm;
+	sstm << "sparse_conv_max_adaptive.txt";
+	std::string sparse_conv_max = sstm.str();
+	const char* outname = sparse_conv_max.c_str();
+	ofstream myfile (outname);
+	if (myfile.is_open())
+	{
+		for (int i0 = 0; i0 < max_sparse_poly_approx_dimension; i0++)
+		{
+			myfile << std::setprecision(17) << collect_max[i0] << "\t";
+		}
+		myfile.close();
+	}
+	else cout << "Unable to open file"; 
+	}
+
+	}
+
+	int CoupledLinearNS_sparse::find_next_to_add(Array<OneD, NekDouble> collect_L2, int current_sparse_poly_approx_dimension ,  Array<OneD,  Array<OneD, int> > index_set)
+	{
+		// create a candidate set, twice as long as the index set
+		Array<OneD,  Array<OneD, int> > candidate_set(current_sparse_poly_approx_dimension*2);
+		for (int iter_index = 0; iter_index < current_sparse_poly_approx_dimension; ++iter_index)
+		{
+			candidate_set[2*iter_index][0] = index_set[iter_index][0] + 1;
+			candidate_set[2*iter_index][1] = index_set[iter_index][1];
+			candidate_set[2*iter_index + 1][0] = index_set[iter_index][0];
+			candidate_set[2*iter_index + 1][1] = index_set[iter_index][1] + 1;
+		}
+		int no_valid_candidates = 0;
+		Array<OneD, int> valid_candidate_indices(current_sparse_poly_approx_dimension*2);
+		for (int iter_index = 0; iter_index < 2*current_sparse_poly_approx_dimension; ++iter_index)
+		{
+			valid_candidate_indices[iter_index] = -1;
+		}
+		for (int iter_index = 0; iter_index < 2*current_sparse_poly_approx_dimension; ++iter_index)
+		{
+//			cout << "start valid neighbour check : " << candidate_set[iter_index][0] << " " << candidate_set[iter_index][1] << endl;
+			// check_candidate if it is already in the set and if it is a valid nieghbour
+			if (!is_in_the_index_set(index_set, candidate_set[iter_index], current_sparse_poly_approx_dimension))
+			{
+//				cout << "cont valid neighbour check : " << candidate_set[iter_index][0] << " " << candidate_set[iter_index][1] << endl;
+				Array<OneD, int> choice1(2);
+				Array<OneD, int> choice2(2);
+				if (candidate_set[iter_index][0] == 0)
+				{
+					choice1[0] = candidate_set[iter_index][0];
+					choice1[1] = 0;
+				}
+				else
+				{
+					choice1[0] = candidate_set[iter_index][0] - 1;
+					choice1[1] = candidate_set[iter_index][1];
+				}
+
+				if (candidate_set[iter_index][1] == 0)
+				{
+					choice2[0] = 0;
+					choice2[1] = candidate_set[iter_index][1];				
+				}
+				else
+				{
+					choice2[0] = candidate_set[iter_index][0];
+					choice2[1] = candidate_set[iter_index][1] - 1;
+				}
+//				cout << "test choice1 : " << choice1[0] << " " << choice1[1] << endl;
+//				cout << "test choice2 : " << choice2[0] << " " << choice2[1] << endl;
+
+				if ((is_in_the_index_set(index_set, choice1, current_sparse_poly_approx_dimension)) && (is_in_the_index_set(index_set, choice2, current_sparse_poly_approx_dimension)))
+				{
+//					cout << "found valid neighbour : " << candidate_set[iter_index][0] << " " << candidate_set[iter_index][1] << endl;
+					valid_candidate_indices[no_valid_candidates] = iter_index;
+					++no_valid_candidates;
+				}
+			}
+		}
+
+		// find max L2 error of the valid neighbors
+		int max_index = 0;
+		double max_L2 = 0;
+		for (int iter_index = 0; iter_index < no_valid_candidates; ++iter_index)
+		{
+			int index_all = candidate_set[valid_candidate_indices[iter_index]][1] + number_of_snapshots_dir1 * candidate_set[valid_candidate_indices[iter_index]][0];
+			cout << "search index_all =  " << index_all << endl; 
+			if (collect_L2[index_all] > max_L2)
+			{
+				max_L2 = collect_L2[index_all];
+				max_index = index_all;
+			}
+		}
+		return max_index;
+	}
+
+	bool CoupledLinearNS_sparse::is_in_the_index_set(Array<OneD,  Array<OneD, int> > index_set , Array<OneD, int> element_to_check, int current_sparse_poly_approx_dimension)
+	{
+		bool is_incl = false;
+		for (int iter_index = 0; iter_index < current_sparse_poly_approx_dimension; ++iter_index)
+		{
+			if ((index_set[iter_index][0] == element_to_check[0]) && (index_set[iter_index][1] == element_to_check[1]))
+				is_incl = true;
+		}
+		return is_incl;
+	}
+
+
+	void CoupledLinearNS_sparse::sweep_adaptive(Array<OneD, NekDouble> &collect_L2, int current_sparse_poly_approx_dimension , Array<OneD,  Array<OneD, int> > index_set, Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_x, Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_y)
+	{
+		// start sweeping 
+		for (int iter_index = 0; iter_index < Nmax; ++iter_index)
+		{
+			int current_index = iter_index;
+			double current_nu;
+			double current_geo;
+			Array<OneD, NekDouble> current_param(parameter_space_dimension, 0.0);
+			current_param = general_param_vector[current_index];
+			if (parameter_types[0] == 0)
+			{
+				current_nu = current_param[0];
+				current_geo = current_param[1];
+			}
+			if (parameter_types[0] == 1)
+			{
+				current_nu = current_param[1];
+				current_geo = current_param[0];
+			}
+			Array<OneD, NekDouble> interpolant_x(snapshot_x_collection[0].size());
+			Array<OneD, NekDouble> interpolant_y(snapshot_y_collection[0].size());
+			for (int i = 0; i < snapshot_x_collection[0].size(); ++i)
+			{
+				interpolant_x[i] = 0.0;
+				interpolant_y[i] = 0.0;
+			}
+			for (int index_interpol_op = 0; index_interpol_op < current_sparse_poly_approx_dimension; ++index_interpol_op)
+			{
+				double lith = lagrange_interp_tensorised_hierarchical(general_param_vector[current_index], index_set[index_interpol_op]); // ToDo: need also an adaptive general_param_vector!!
+				for (int i = 0; i < snapshot_x_collection[0].size(); ++i)	
+				{
+					interpolant_x[i] += sparse_poly_coefficients_x[index_interpol_op][i] * lith;
+					interpolant_y[i] += sparse_poly_coefficients_y[index_interpol_op][i] * lith;
+				}
+			}
+			double rel_L2error = L2norm_abs_error_ITHACA(interpolant_x, interpolant_y, snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]) / L2norm_ITHACA(snapshot_x_collection[iter_index], snapshot_y_collection[iter_index]);
+			cout << "rel_L2error at 2D parameter geo " << current_geo << " nu " << current_nu << " is " << rel_L2error << endl;
+			collect_L2[iter_index] = rel_L2error;
+		}
+	}
+
+
+	void CoupledLinearNS_sparse::compute_current_coffs_adaptive(int current_sparse_poly_approx_dimension, Array<OneD,  Array<OneD, int> > index_set, Array<OneD, Array<OneD, NekDouble> > &sparse_poly_coefficients_x, Array<OneD, Array<OneD, NekDouble> > &sparse_poly_coefficients_y)
+	{
+		// compute the current coefficients
+		cout << "current_sparse_poly_approx_dimension " << current_sparse_poly_approx_dimension << endl;
+		for (int i=current_sparse_poly_approx_dimension-1; i < current_sparse_poly_approx_dimension; ++i)
+		{
+			// identify the correct snapshot index based on the index_set
+			int index_all = index_set[i][1] + number_of_snapshots_dir1 * index_set[i][0]; 
+			cout << "adding sparse_poly_coeffs at index_all " << index_all << endl;
+			for(int k=0; k<snapshot_x_collection[0].size(); ++k)
+			{
+				sparse_poly_coefficients_x[i][k] =  snapshot_x_collection[index_all][k];
+				sparse_poly_coefficients_y[i][k] =  snapshot_y_collection[index_all][k];
+			}
+			
+			for (int j=0; j < i; ++j)
+			{
+				double lith = lagrange_interp_tensorised_hierarchical(general_param_vector[index_all], index_set[j]);
+				for(int k=0; k<snapshot_x_collection[0].size(); ++k)
+				{
+					sparse_poly_coefficients_x[i][k] -= sparse_poly_coefficients_x[j][k] * lith;
+					sparse_poly_coefficients_y[i][k] -= sparse_poly_coefficients_y[j][k] * lith;
+				}
+			}
 		}
 
 
-
-
 	}
+
 
 
     void CoupledLinearNS_sparse::compute_sparse_poly_approx_2D()

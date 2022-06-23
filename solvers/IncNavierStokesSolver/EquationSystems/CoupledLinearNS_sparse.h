@@ -85,7 +85,10 @@ namespace Nektar
     double L2norm_ITHACA( Array< OneD, NekDouble > component_x, Array< OneD, NekDouble > component_y );
     double Linfnorm_abs_error_ITHACA( Array< OneD, NekDouble > component1_x, Array< OneD, NekDouble > component1_y, Array< OneD, NekDouble > component2_x, Array< OneD, NekDouble > component2_y );
     double L2norm_abs_error_ITHACA( Array< OneD, NekDouble > component1_x, Array< OneD, NekDouble > component1_y, Array< OneD, NekDouble > component2_x, Array< OneD, NekDouble > component2_y );
-
+	void compute_current_coffs_adaptive(int current_sparse_poly_approx_dimension, Array<OneD,   Array<OneD, int> > index_set, Array<OneD, Array<OneD, NekDouble> > &sparse_poly_coefficients_x, Array<OneD, Array<OneD, NekDouble> > &sparse_poly_coefficients_y);
+	void sweep_adaptive(Array<OneD, NekDouble> &collect_L2,  int current_sparse_poly_approx_dimension , Array<OneD,  Array<OneD, int> > index_set, Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_x, Array<OneD, Array<OneD, NekDouble> > sparse_poly_coefficients_y);
+	int find_next_to_add(Array<OneD, NekDouble> collect_L2, int current_sparse_poly_approx_dimension ,  Array<OneD,  Array<OneD, int> > index_set);
+	bool is_in_the_index_set(Array<OneD,  Array<OneD, int> > index_set , Array<OneD, int> element_to_check, int current_sparse_poly_approx_dimension);
 
 	inline double Geo_T(double w, int elemT, int index)
 	{

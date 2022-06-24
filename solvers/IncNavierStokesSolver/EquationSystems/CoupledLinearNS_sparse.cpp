@@ -930,6 +930,25 @@ namespace Nektar
 	else cout << "Unable to open file"; 
 	}
 
+	// also write adaptively chosen point list, i.e., index_set
+	{
+	std::stringstream sstm;
+	sstm << "index_adaptive.txt";
+	std::string index_adaptive = sstm.str();
+	const char* outname = index_adaptive.c_str();
+	ofstream myfile (outname);
+	if (myfile.is_open())
+	{
+		for (int i0 = 0; i0 < max_sparse_poly_approx_dimension; i0++)
+		{
+			myfile << std::setprecision(17) << index_set[i0][0] << "\t" << index_set[i0][1] << "\n";
+		}
+		myfile.close();
+	}
+	else cout << "Unable to open file"; 
+	}
+
+
 	}
 
 	int CoupledLinearNS_sparse::find_next_to_add(Array<OneD, NekDouble> collect_L2, int current_sparse_poly_approx_dimension ,  Array<OneD,  Array<OneD, int> > index_set)
